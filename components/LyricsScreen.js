@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   ScrollView,
@@ -11,12 +11,10 @@ import {
 import Slider from "@react-native-community/slider";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { BhajanContext } from "./BhajanContext";
 
-const { height, width } = Dimensions.get("window");
-
-const LyricsScreen = ({ route, navigation }) => {
-  const { bhajan } = route.params;
+const LyricsScreen = ({ navigation }) => {
+  const { bhajan } = useContext(BhajanContext);
   const [fontSize, setFontSize] = useState(24);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
@@ -44,22 +42,21 @@ const LyricsScreen = ({ route, navigation }) => {
 
   // Function to format lyrics with proper line breaks and verse numbers
   const formatLyrics = (lyrics) => {
-    return lyrics
-      .split("\n")
-      //.filter((line) => line.trim() !== "")
-      .map((line, index) => {
-        return (
-          <Text
-            key={index}
-            style={[
-              styles.lyricsLine,
-              { fontSize: fontSize },
-            ]}
-          >
-            {line.trim()}
-          </Text>
-        );
-      });
+    return (
+      lyrics
+        .split("\n")
+        //.filter((line) => line.trim() !== "")
+        .map((line, index) => {
+          return (
+            <Text
+              key={index}
+              style={[styles.lyricsLine, { fontSize: fontSize }]}
+            >
+              {line.trim()}
+            </Text>
+          );
+        })
+    );
   };
 
   return (
@@ -299,6 +296,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666",
     marginVertical: 5,
+  },
+
+  icon: {
+    fontSize: 24,
+    marginRight: 6,
+  },
+  text: {
+    color: "white",
+    fontSize: 16,
   },
 });
 

@@ -1,31 +1,31 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  TextInput,
-  Dimensions,
 } from "react-native";
 // (removed static JSON import) - bhajans will be fetched from an API at runtime
-import { List, Searchbar, Card, Title, Paragraph } from "react-native-paper";
+import { Searchbar, Card } from "react-native-paper";
+import localBhajans from "../assets/bhajans/allBhajansData.json";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from 'expo-linear-gradient';
-
-const { width } = Dimensions.get('window');
+import { LinearGradient } from "expo-linear-gradient";
+import { BhajanContext } from "./BhajanContext";
 
 const HomeScreen = ({ navigation }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   // dynamic data state
   const [bhajans, setBhajans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { setBhajan } = useContext(BhajanContext);
 
   useEffect(() => {
     // TODO: replace with your real API endpoint
-    const API_URL = 'https://your-api.example.com/bhajans';
+    const API_URL =
+      "https://raw.githubusercontent.com/NaveenBharadwajhm/bhajan/refs/heads/main/assets/bhajans/allBhajansData.json";
     let isMounted = true;
     setLoading(true);
     fetch(API_URL)
@@ -41,7 +41,16 @@ const HomeScreen = ({ navigation }) => {
       })
       .catch((err) => {
         if (!isMounted) return;
-        setError(err.message || 'Failed to load bhajans');
+        // fallback to bundled local data when network or fetch fails
+        try {
+          const fallback = Array.isArray(localBhajans)
+            ? localBhajans
+            : localBhajans.bhajans || [];
+          setBhajans(fallback);
+          setError(null);
+        } catch (e) {
+          setError(err.message || "Failed to load bhajans");
+        }
       })
       .finally(() => {
         if (!isMounted) return;
@@ -55,31 +64,37 @@ const HomeScreen = ({ navigation }) => {
 
   // Categories for bhajans
   const categories = [
-    { id: 'all', name: 'ಎಲ್ಲಾ', icon: '🎵' },
-    { id: 'ganesh', name: 'ಗಣೇಶ', icon: '🐘' },
-    { id: 'shiva', name: 'ಶಿವ', icon: '🕉️' },
-    { id: 'rama', name: 'ರಾಮ', icon: '🏹' },
-    { id: 'krishna', name: 'ಕೃಷ್ಣ', icon: '🪔' },
+    { id: "all", name: "ಎಲ್ಲಾ", icon: "🎵" },
+    { id: "ganesh", name: "ಗಣೇಶ", icon: "🐘" },
+    { id: "shiva", name: "ಶಿವ", icon: "🕉️" },
+    { id: "rama", name: "ರಾಮ", icon: "🏹" },
+    { id: "krishna", name: "ಕೃಷ್ಣ", icon: "🪔" },
   ];
 
   // Filter bhajans based on search and category
-  const filteredBhajans = bhajans.filter(bhajan => {
-    const matchesSearch = bhajan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         bhajan.lyrics.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          bhajan.titleEnglish.toLowerCase().includes(searchQuery.toLowerCase());
-    
+  const filteredBhajans = bhajans.filter((bhajan) => {
+    const matchesSearch =
+      bhajan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      bhajan.lyrics.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      bhajan.titleEnglish.toLowerCase().includes(searchQuery.toLowerCase());
+
     let matchesCategory = true;
-    if (selectedCategory !== 'all') {
-      matchesCategory = bhajan.category.toLowerCase().includes(selectedCategory);
+    if (selectedCategory !== "all") {
+      matchesCategory = bhajan.category
+        .toLowerCase()
+        .includes(selectedCategory);
     }
-    
+
     return matchesSearch && matchesCategory;
   });
 
   const renderBhajanItem = ({ item, index }) => (
     <Card style={styles.bhajanCard} elevation={3}>
       <TouchableOpacity
-        onPress={() => navigation.navigate("Lyrics", { bhajan: item })}
+        onPress={() => {
+          setBhajan(item);
+          navigation.navigate("Lyrics");
+        }}
         activeOpacity={0.7}
       >
         <Card.Content style={styles.cardContent}>
@@ -107,16 +122,18 @@ const HomeScreen = ({ navigation }) => {
     <TouchableOpacity
       style={[
         styles.categoryButton,
-        selectedCategory === item.id && styles.selectedCategory
+        selectedCategory === item.id && styles.selectedCategory,
       ]}
       onPress={() => setSelectedCategory(item.id)}
       activeOpacity={0.7}
     >
       <Text style={styles.categoryIcon}>{item.icon}</Text>
-      <Text style={[
-        styles.categoryText,
-        selectedCategory === item.id && styles.selectedCategoryText
-      ]}>
+      <Text
+        style={[
+          styles.categoryText,
+          selectedCategory === item.id && styles.selectedCategoryText,
+        ]}
+      >
         {item.name}
       </Text>
     </TouchableOpacity>
@@ -134,7 +151,7 @@ const HomeScreen = ({ navigation }) => {
     <View style={styles.container}>
       {/* Beautiful Header */}
       <LinearGradient
-        colors={['#FF6B35', '#F7931E', '#FFD93D']}
+        colors={["#FF6B35", "#F7931E", "#FFD93D"]}
         style={styles.header}
       >
         <SafeAreaView>
@@ -172,12 +189,15 @@ const HomeScreen = ({ navigation }) => {
       {/* Bhajans List */}
       <View style={styles.bhajansContainer}>
         <Text style={styles.resultsText}>
-          {filteredBhajans.length} bhajan{filteredBhajans.length !== 1 ? 's' : ''} found
+          {filteredBhajans.length} bhajan
+          {filteredBhajans.length !== 1 ? "s" : ""} found
         </Text>
         <FlatList
           data={filteredBhajans}
           renderItem={renderBhajanItem}
-          keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+          keyExtractor={(item) =>
+            item.id?.toString() || Math.random().toString()
+          }
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.bhajansList}
         />
@@ -194,7 +214,7 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
   },
   header: {
     paddingTop: 0,
@@ -202,20 +222,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   headerContent: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   appTitle: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
+    fontWeight: "bold",
+    color: "white",
+    textAlign: "center",
     marginBottom: 5,
   },
   appSubtitle: {
     fontSize: 16,
-    color: 'white',
+    color: "white",
     opacity: 0.9,
-    textAlign: 'center',
+    textAlign: "center",
   },
   searchContainer: {
     paddingHorizontal: 20,
@@ -225,7 +245,7 @@ const styles = StyleSheet.create({
   searchBar: {
     borderRadius: 25,
     elevation: 5,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   searchInput: {
     fontSize: 16,
@@ -237,17 +257,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   categoryButton: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 12,
     marginRight: 15,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 25,
     elevation: 2,
     minWidth: 80,
   },
   selectedCategory: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: "#FF6B35",
   },
   categoryIcon: {
     fontSize: 24,
@@ -255,11 +275,11 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
+    fontWeight: "600",
+    color: "#666",
   },
   selectedCategoryText: {
-    color: 'white',
+    color: "white",
   },
   bhajansContainer: {
     flex: 1,
@@ -267,9 +287,9 @@ const styles = StyleSheet.create({
   },
   resultsText: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     marginBottom: 15,
-    textAlign: 'center',
+    textAlign: "center",
   },
   bhajansList: {
     paddingBottom: 20,
@@ -277,7 +297,7 @@ const styles = StyleSheet.create({
   bhajanCard: {
     marginBottom: 15,
     borderRadius: 15,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   cardContent: {
     padding: 20,
@@ -286,15 +306,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bhajanHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 10,
   },
   bhajanNumber: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#FF6B35',
-    backgroundColor: '#FFF3E0',
+    fontWeight: "bold",
+    color: "#FF6B35",
+    backgroundColor: "#FFF3E0",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -302,40 +322,40 @@ const styles = StyleSheet.create({
   },
   bhajanTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2C3E50',
+    fontWeight: "bold",
+    color: "#2C3E50",
     flex: 1,
   },
   bhajanPreview: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     lineHeight: 20,
     marginBottom: 15,
   },
   bhajanMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   bhajanLength: {
     fontSize: 12,
-    color: '#888',
+    color: "#888",
   },
   tapToRead: {
     fontSize: 12,
-    color: '#FF6B35',
-    fontWeight: '600',
+    color: "#FF6B35",
+    fontWeight: "600",
   },
   footer: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     paddingVertical: 15,
-    alignItems: 'center',
+    alignItems: "center",
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: "#E0E0E0",
   },
   footerText: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
   },
 });
 
